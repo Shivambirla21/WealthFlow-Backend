@@ -3,14 +3,22 @@ import { env } from './envConfig.js';
 
 const { Pool } = pg;
 
-const pool = env.databaseUrl
-  ? new Pool({
-      connectionString: env.databaseUrl,
-      ssl: {
-        rejectUnauthorized: false,
-      },
-    })
-  : null;
+// Normalize SSL mode in the connection string to avoid deprecation warnings
+// ('prefer', 'require', 'verify-ca' are aliases for 'verify-full' currently).
+let pool = null;
+if (env.databaseUrl) {
+  let connectionString = env.databaseUrl;
+
+  // replace sslmode values that will change semantics in future pg versions
+  connectionString = connectionString.replace(/sslmode=(prefer|require|verify-ca)/i, 'sslmode=verify-full');
+
+  pool = new Pool({
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  });
+}
 
 async function connectDatabase() {
   if (!env.databaseUrl) {
