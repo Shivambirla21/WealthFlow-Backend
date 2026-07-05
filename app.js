@@ -13,6 +13,16 @@ app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json());
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'wealthflow-backend',
+    message: 'WealthFlow backend is live and listening.',
+    apiHealth: '/api/health',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use('/api', routes);
 app.use(notFound);
 app.use(errorHandler);
