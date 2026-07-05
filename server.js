@@ -2,6 +2,7 @@ import app from './app.js';
 import { env } from './config/envConfig.js';
 import { connectDatabase, pool } from './config/database.js';
 import { initializeSchema } from './config/initSchema.js';
+import { connectCloudinary } from './config/cloudinaryConfig.js';
 
 function getDatabaseHost() {
   try {
@@ -32,6 +33,12 @@ function logStartup(databaseStatus) {
     console.log(` Database    : not connected (${databaseStatus?.message || 'unknown'})`);
   }
 
+  if (cloudinaryStatus?.connected) {
+    console.log(` Cloudinary  : connected (${cloudinaryStatus.cloudName || 'configured'})`);
+  } else {
+    console.log(` Cloudinary  : not connected (${cloudinaryStatus?.message || 'unknown'})`);
+  }
+
   console.log('========================================');
   console.log('');
 }
@@ -43,7 +50,8 @@ async function start() {
       await initializeSchema();
     }
 
-    const server = app.listen(env.port, () => logStartup(dbStatus));
+    const cloudinaryStatus = await connectCloudinary();
+    const server = app.listen(env.port, () => logStartup(dbStatus, cloudinaryStatus));
 
     const graceful = async (signal) => {
       console.log(`${signal} received, shutting down...`);
