@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { query } from '../config/database.js';
 import { env } from '../config/envConfig.js';
 
@@ -22,6 +23,11 @@ async function createUser({ name, email, password, photo }) {
   return result.rows[0];
 }
 
+async function createSocialUser({ name, email, photo }) {
+  const randomPassword = crypto.randomBytes(16).toString('hex');
+  return createUser({ name, email, password: randomPassword, photo });
+}
+
 function generateToken(user) {
   return jwt.sign({ sub: user.id, email: user.email, name: user.name }, env.jwtSecret, {
     expiresIn: '7d',
@@ -33,4 +39,4 @@ async function verifyPassword(user, candidatePassword) {
   return bcrypt.compare(candidatePassword, user.password_hash);
 }
 
-export { findUserByEmail, createUser, generateToken, verifyPassword };
+export { findUserByEmail, createUser, createSocialUser, generateToken, verifyPassword };
