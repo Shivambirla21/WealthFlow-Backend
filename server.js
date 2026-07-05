@@ -1,6 +1,7 @@
 import app from './app.js';
 import { env } from './config/envConfig.js';
 import { connectDatabase, pool } from './config/database.js';
+import { initializeSchema } from './config/initSchema.js';
 
 function getDatabaseHost() {
   try {
@@ -38,6 +39,9 @@ function logStartup(databaseStatus) {
 async function start() {
   try {
     const dbStatus = await connectDatabase();
+    if (dbStatus.connected) {
+      await initializeSchema();
+    }
 
     const server = app.listen(env.port, () => logStartup(dbStatus));
 
