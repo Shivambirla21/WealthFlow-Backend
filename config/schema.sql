@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   photo TEXT,
+  password_hash TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -78,6 +79,18 @@ CREATE TABLE IF NOT EXISTS goals (
   status VARCHAR(30) NOT NULL DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'users'
+      AND column_name = 'password_hash'
+  ) THEN
+    ALTER TABLE users ADD COLUMN password_hash TEXT;
+  END IF;
+END$$;
 
 CREATE TABLE IF NOT EXISTS assets (
   id BIGSERIAL PRIMARY KEY,

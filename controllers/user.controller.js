@@ -1,7 +1,6 @@
-import * as User from '../models/user.model.js';
-
-function getProfile(req, res) {
-  res.json({ success: true, data: User.getCurrentUser() });
+export function getProfile(req, res) {
+  const user = req.user || null;
+  res.json({ success: true, data: user });
 }
 
 export { getProfile };
