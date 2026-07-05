@@ -1,12 +1,21 @@
 import * as Transaction from '../models/transaction.model.js';
 
-function listTransactions(req, res) {
-  res.json({ success: true, data: Transaction.findAll() });
+async function listTransactions(req, res) {
+  try {
+    const data = await Transaction.findAll();
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 }
 
-function createTransaction(req, res) {
-  const transaction = Transaction.create(req.body);
-  res.status(201).json({ success: true, data: transaction });
+async function createTransaction(req, res) {
+  try {
+    const transaction = await Transaction.create(req.body);
+    res.status(201).json({ success: true, data: transaction });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 }
 
 export { listTransactions, createTransaction };
