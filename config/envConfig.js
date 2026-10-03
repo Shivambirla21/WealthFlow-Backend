@@ -11,6 +11,8 @@ const env = {
   clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
   googleClientId: process.env.GOOGLE_CLIENT_ID,
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  googleRedirectUri: process.env.GOOGLE_REDIRECT_URI
+    || `${(process.env.BACKEND_ORIGIN || `http://localhost:${process.env.PORT || 5000}`).replace(/\/$/, '')}/api/auth/oauth/google/callback`,
   facebookAppId: process.env.FACEBOOK_APP_ID,
   facebookAppSecret: process.env.FACEBOOK_APP_SECRET,
 };

@@ -12,7 +12,7 @@ function getDatabaseHost() {
   }
 }
 
-function logStartup(databaseStatus) {
+function logStartup(databaseStatus, cloudinaryStatus) {
   const baseUrl = `http://localhost:${env.port}`;
 
   console.log('');
@@ -24,6 +24,10 @@ function logStartup(databaseStatus) {
   console.log(` API Base    : ${baseUrl}/api`);
   console.log(` Health      : ${baseUrl}/api/health`);
   console.log(` CORS Origin : ${env.corsOrigin || 'not set'}`);
+  const googleSecret = env.googleClientSecret || '';
+  const googleSecretReady = googleSecret.startsWith('GOCSPX-') && !googleSecret.includes('*');
+  console.log(` Google URI  : ${env.googleRedirectUri}`);
+  console.log(` Google auth : ${googleSecretReady ? 'client secret loaded' : 'client secret missing or still masked'}`);
   console.log(` DB Host     : ${getDatabaseHost()}`);
 
   if (databaseStatus?.connected) {
@@ -77,5 +81,4 @@ async function start() {
     process.exit(1);
   }
 }
-
 start();

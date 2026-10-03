@@ -2,11 +2,52 @@ import { OAuth2Client } from 'google-auth-library';
 import { createUser, createSocialUser, findUserByEmail, verifyPassword, generateToken } from '../models/auth.model.js';
 import { env } from '../config/envConfig.js';
 
-const GOOGLE_OAUTH_REDIRECT = `${env.backendOrigin.replace(/\/$/, '')}/api/auth/oauth/google/callback`;
+const GOOGLE_OAUTH_REDIRECT = env.googleRedirectUri;
 const FACEBOOK_OAUTH_REDIRECT = `${env.backendOrigin.replace(/\/$/, '')}/api/auth/oauth/facebook/callback`;
 
-function redirectToClient(res, token) {
-  const target = `${env.clientOrigin.replace(/\/$/, '')}/?auth_token=${encodeURIComponent(token)}`;
+function safeClientOrigin(candidate) {
+  const fallback = env.clientOrigin.replace(/\/$/, '');
+  if (!candidate) return fallback;
+
+  try {
+    const url = new URL(candidate);
+    const origin = url.origin;
+    const allowed = new Set(
+      [env.clientOrigin, env.corsOrigin]
+        .flatMap((value) => String(value || '').split(','))
+        .map((value) => value.trim().replace(/\/$/, ''))
+        .filter(Boolean),
+    );
+    const localDev = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    if (localDev || allowed.has(origin)) return origin;
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
+}
+
+function encodeOAuthState(provider, returnTo) {
+  return Buffer.from(JSON.stringify({
+    provider,
+    returnTo: safeClientOrigin(returnTo),
+  })).toString('base64url');
+}
+
+function decodeOAuthState(state) {
+  try {
+    const parsed = JSON.parse(Buffer.from(String(state || ''), 'base64url').toString('utf8'));
+    return {
+      provider: parsed.provider || null,
+      returnTo: safeClientOrigin(parsed.returnTo),
+    };
+  } catch {
+    return { provider: null, returnTo: safeClientOrigin(null) };
+  }
+}
+
+function redirectToClient(res, token, returnTo) {
+  const target = `${safeClientOrigin(returnTo)}/?auth_token=${encodeURIComponent(token)}`;
   return res.redirect(target);
 }
 
@@ -83,7 +124,7 @@ async function googleRedirect(req, res, next) {
       access_type: 'offline',
       prompt: 'select_account',
       scope: ['openid', 'email', 'profile'],
-      state: 'google',
+      state: encodeOAuthState('google', req.query.return_to),
     });
 
     res.redirect(authUrl);
@@ -124,8 +165,10 @@ async function googleCallback(req, res, next) {
     });
 
     const token = generateToken(user);
-    return redirectToClient(res, token);
+    const { returnTo } = decodeOAuthState(req.query.state);
+    return redirectToClient(res, token, returnTo);
   } catch (error) {
+    console.error('Google OAuth callback failed:', error.message);
     next(error);
   }
 }
@@ -140,7 +183,7 @@ async function facebookRedirect(req, res, next) {
     const authUrl = new URL('https://www.facebook.com/v17.0/dialog/oauth');
     authUrl.searchParams.set('client_id', env.facebookAppId);
     authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('state', 'facebook');
+    authUrl.searchParams.set('state', encodeOAuthState('facebook', req.query.return_to));
     authUrl.searchParams.set('scope', 'email,public_profile');
 
     res.redirect(authUrl.toString());
@@ -195,7 +238,8 @@ async function facebookCallback(req, res, next) {
     });
 
     const token = generateToken(user);
-    return redirectToClient(res, token);
+    const { returnTo } = decodeOAuthState(req.query.state);
+    return redirectToClient(res, token, returnTo);
   } catch (error) {
     next(error);
   }

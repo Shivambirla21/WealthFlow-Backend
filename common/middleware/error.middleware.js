@@ -5,11 +5,13 @@ function notFound(req, res, next) {
 }
 
 function errorHandler(error, req, res, next) {
+  console.error("ERROR:", error);   // <-- add this
+
   const statusCode = error.statusCode || 500;
 
   res.status(statusCode).json({
     success: false,
-    message: error.message || 'Internal server error',
+    message: error.message || "Internal server error",
   });
 }
 

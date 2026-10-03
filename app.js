@@ -9,7 +9,23 @@ import { notFound, errorHandler } from './common/middleware/error.middleware.js'
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: env.corsOrigin }));
+const configuredOrigins = [env.corsOrigin, env.clientOrigin]
+  .flatMap((value) => String(value || '').split(','))
+  .map((value) => value.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    const normalized = origin.replace(/\/$/, '');
+    const localDev = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized);
+    callback(null, localDev || configuredOrigins.includes(normalized));
+  },
+}));
 app.use(express.json());
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 
